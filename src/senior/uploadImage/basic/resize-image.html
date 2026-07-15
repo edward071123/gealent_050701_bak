@@ -1,0 +1,921 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Swing Image Resize Walkthrough</title>
+  <style>
+    :root {
+      --ink: #26231f;
+      --soft-ink: #6a6459;
+      --paper: #f5eddd;
+      --panel: #fffaf0;
+      --line: #2e2a25;
+      --blue: #2d7bd8;
+      --blue-soft: #dcecff;
+      --green: #32a66a;
+      --green-soft: #dff5e8;
+      --amber: #f2c84b;
+      --amber-soft: #fff0b7;
+      --red: #e85544;
+      --red-soft: #ffe2dc;
+      --violet: #7865d8;
+      --violet-soft: #ebe7ff;
+      --shadow: rgba(46, 42, 37, .18);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        linear-gradient(90deg, rgba(46, 42, 37, .055) 1px, transparent 1px),
+        linear-gradient(rgba(46, 42, 37, .055) 1px, transparent 1px),
+        var(--paper);
+      background-size: 28px 28px;
+      font-family: "Avenir Next", "Helvetica Neue", sans-serif;
+      letter-spacing: 0;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    .page {
+      width: min(1220px, calc(100vw - 28px));
+      margin: 0 auto;
+      padding: 18px 0 38px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(320px, 430px);
+      gap: 22px;
+      align-items: end;
+      padding-bottom: 10px;
+      border-bottom: 3px solid var(--line);
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--soft-ink);
+      font-size: 12px;
+      font-weight: 950;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(30px, 3.6vw, 46px);
+      line-height: 1.02;
+      letter-spacing: 0;
+    }
+
+    .intro {
+      margin: 0;
+      color: var(--soft-ink);
+      font-size: 14px;
+      font-weight: 650;
+      line-height: 1.55;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(360px, .75fr);
+      gap: 22px;
+      margin-top: 18px;
+      align-items: start;
+    }
+
+    .left-column {
+      display: grid;
+      gap: 16px;
+    }
+
+    .board,
+    .side-card,
+    .code-card {
+      border: 4px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: 10px 10px 0 var(--shadow);
+    }
+
+    .board {
+      min-height: 680px;
+      padding: 22px;
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 18% 15%, rgba(242, 200, 75, .2), transparent 28%),
+        radial-gradient(circle at 82% 72%, rgba(45, 123, 216, .14), transparent 30%),
+        repeating-linear-gradient(0deg, rgba(46, 42, 37, .035), rgba(46, 42, 37, .035) 1px, transparent 1px, transparent 12px),
+        #fffaf0;
+    }
+
+    .visual-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: start;
+      position: relative;
+      z-index: 5;
+    }
+
+    .visual-title {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 950;
+    }
+
+    .visual-subtitle {
+      margin: 4px 0 0;
+      color: var(--soft-ink);
+      font-weight: 750;
+    }
+
+    .badge {
+      min-width: 168px;
+      padding: 10px 12px;
+      border: 3px solid var(--line);
+      border-radius: 8px;
+      background: var(--amber-soft);
+      box-shadow: 5px 5px 0 rgba(46, 42, 37, .14);
+      font-weight: 950;
+      text-align: center;
+    }
+
+    .stage {
+      position: absolute;
+      inset: 112px 28px 28px;
+    }
+
+    .viewport-shell {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: min(760px, 82%);
+      height: min(470px, 70%);
+      transform: translate(-50%, -44%);
+      border: 5px solid var(--line);
+      border-radius: 10px;
+      background: #fffdf7;
+      box-shadow: 16px 18px 0 rgba(46, 42, 37, .13);
+      overflow: hidden;
+      transition: width .25s ease, height .25s ease;
+    }
+
+    .viewport-label,
+    .usable-label,
+    .image-label,
+    .original-label {
+      position: absolute;
+      z-index: 8;
+      padding: 6px 10px;
+      border: 3px solid var(--line);
+      border-radius: 7px;
+      background: #fff;
+      box-shadow: 4px 4px 0 rgba(46, 42, 37, .13);
+      font-size: 13px;
+      font-weight: 950;
+      white-space: nowrap;
+    }
+
+    .viewport-label {
+      left: 16px;
+      top: 14px;
+    }
+
+    .usable-area {
+      position: absolute;
+      inset: 10px;
+      border: 4px dashed rgba(46, 42, 37, .62);
+      border-radius: 8px;
+      background: rgba(50, 166, 106, .08);
+      opacity: 0;
+      transition: opacity .25s ease, inset .25s ease;
+    }
+
+    .usable-label {
+      right: 14px;
+      top: 14px;
+      background: var(--green-soft);
+    }
+
+    .original-image,
+    .fitted-image {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      border: 5px solid var(--line);
+      border-radius: 10px;
+      background:
+        linear-gradient(145deg, rgba(45, 123, 216, .22), transparent 44%),
+        linear-gradient(30deg, rgba(50, 166, 106, .32) 0 35%, transparent 36%),
+        linear-gradient(150deg, transparent 0 58%, rgba(242, 200, 75, .7) 59%),
+        #fff;
+      transform: translate(-50%, -50%);
+      transition: width .3s ease, height .3s ease, opacity .25s ease, transform .3s ease;
+    }
+
+    .original-image {
+      z-index: 2;
+      border-style: dashed;
+      background:
+        linear-gradient(145deg, rgba(232, 85, 68, .18), transparent 44%),
+        linear-gradient(30deg, rgba(232, 85, 68, .12) 0 35%, transparent 36%),
+        rgba(232, 85, 68, .05);
+      opacity: 0;
+    }
+
+    .fitted-image {
+      z-index: 6;
+      opacity: 0;
+    }
+
+    .original-label {
+      left: 24px;
+      bottom: 24px;
+      background: var(--red-soft);
+      opacity: 0;
+    }
+
+    .image-label {
+      left: 50%;
+      bottom: 34px;
+      transform: translateX(-50%);
+      background: var(--blue-soft);
+      opacity: 0;
+    }
+
+    .ratio-bar {
+      position: absolute;
+      z-index: 9;
+      display: grid;
+      gap: 8px;
+      left: 36px;
+      right: 36px;
+      bottom: 28px;
+      opacity: 0;
+      transition: opacity .25s ease;
+    }
+
+    .ratio-row {
+      display: grid;
+      grid-template-columns: 96px 1fr 72px;
+      gap: 8px;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 950;
+    }
+
+    .track {
+      height: 18px;
+      border: 3px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .fill {
+      height: 100%;
+      width: 40%;
+      background: var(--blue);
+      transition: width .25s ease, background .25s ease;
+    }
+
+    .fill.height-fill {
+      background: var(--violet);
+    }
+
+    .decision {
+      position: absolute;
+      z-index: 10;
+      right: 26px;
+      bottom: 28px;
+      max-width: 300px;
+      padding: 14px;
+      border: 4px solid var(--line);
+      border-radius: 8px;
+      background: var(--amber-soft);
+      box-shadow: 7px 7px 0 rgba(46, 42, 37, .16);
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity .25s ease, transform .25s ease;
+    }
+
+    .decision strong {
+      display: block;
+      font-size: 18px;
+      margin-bottom: 4px;
+    }
+
+    .decision span {
+      color: var(--soft-ink);
+      font-weight: 750;
+      line-height: 1.45;
+    }
+
+    .side {
+      display: grid;
+      gap: 16px;
+    }
+
+    .side-card,
+    .code-card {
+      padding: 16px;
+    }
+
+    .side-card h2,
+    .code-card h2 {
+      margin: 0 0 12px;
+      font-size: 22px;
+      font-weight: 950;
+    }
+
+    .scenario-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .scenario {
+      min-height: 62px;
+      padding: 9px 10px;
+      border: 3px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      box-shadow: 4px 4px 0 rgba(46, 42, 37, .13);
+      font-weight: 950;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .scenario span {
+      display: block;
+      margin-top: 3px;
+      color: var(--soft-ink);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .scenario.active {
+      background: var(--blue-soft);
+      transform: translate(2px, 2px);
+      box-shadow: 2px 2px 0 rgba(46, 42, 37, .13);
+    }
+
+    .steps {
+      display: grid;
+      gap: 9px;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 9px;
+      align-items: center;
+      width: 100%;
+      padding: 9px;
+      border: 3px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      box-shadow: 4px 4px 0 rgba(46, 42, 37, .12);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .step-number {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border: 3px solid var(--line);
+      border-radius: 50%;
+      background: #fff;
+      font-weight: 950;
+    }
+
+    .step-title {
+      display: block;
+      font-weight: 950;
+    }
+
+    .step-desc {
+      display: block;
+      margin-top: 2px;
+      color: var(--soft-ink);
+      font-size: 12px;
+      font-weight: 780;
+      line-height: 1.35;
+    }
+
+    .step.active {
+      background: var(--amber-soft);
+      transform: translate(2px, 2px);
+      box-shadow: 2px 2px 0 rgba(46, 42, 37, .12);
+    }
+
+    .nav-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .nav-button {
+      padding: 10px;
+      border: 3px solid var(--line);
+      border-radius: 8px;
+      background: var(--green-soft);
+      color: var(--ink);
+      box-shadow: 4px 4px 0 rgba(46, 42, 37, .12);
+      font-weight: 950;
+      cursor: pointer;
+    }
+
+    .readout {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .stat {
+      padding: 10px;
+      border: 3px solid var(--line);
+      border-radius: 8px;
+      background: var(--green);
+      color: #fff;
+      box-shadow: 4px 4px 0 rgba(46, 42, 37, .12);
+    }
+
+    .stat span {
+      display: block;
+      font-size: 11px;
+      font-weight: 850;
+      opacity: .9;
+    }
+
+    .stat b {
+      display: block;
+      margin-top: 2px;
+      font-size: 19px;
+      line-height: 1.1;
+    }
+
+    .explain {
+      margin: 12px 0 0;
+      color: var(--soft-ink);
+      font-size: 15px;
+      font-weight: 750;
+      line-height: 1.58;
+    }
+
+    pre {
+      margin: 0;
+      overflow-x: auto;
+      white-space: pre-wrap;
+    }
+
+    code {
+      font-family: Menlo, Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--ink);
+    }
+
+    .active-1 .viewport-shell {
+      outline: 8px solid rgba(242, 200, 75, .45);
+    }
+
+    .active-2 .usable-area,
+    .active-3 .usable-area,
+    .active-4 .usable-area,
+    .active-5 .usable-area {
+      opacity: 1;
+    }
+
+    .active-3 .original-image,
+    .active-4 .original-image {
+      opacity: .52;
+    }
+
+    .active-3 .original-label,
+    .active-4 .original-label {
+      opacity: 1;
+    }
+
+    .active-4 .ratio-bar {
+      opacity: 1;
+    }
+
+    .active-5 .fitted-image,
+    .active-5 .image-label {
+      opacity: 1;
+    }
+
+    .active-5 .decision {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 980px) {
+      header,
+      main {
+        grid-template-columns: 1fr;
+      }
+
+      .board {
+        min-height: 610px;
+      }
+
+      .stage {
+        inset: 104px 18px 24px;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .page {
+        width: min(100vw - 18px, 1220px);
+        padding-top: 18px;
+      }
+
+      h1 {
+        font-size: 30px;
+      }
+
+      .scenario-grid,
+      .readout {
+        grid-template-columns: 1fr;
+      }
+
+      .visual-head {
+        display: block;
+      }
+
+      .badge {
+        margin-top: 10px;
+        text-align: left;
+      }
+
+      .viewport-shell {
+        width: 92%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div>
+        <p class="eyebrow">SwingDemo.java / showImage()</p>
+        <h1>圖片縮放原理拆解</h1>
+      </div>
+      <p class="intro">這頁用「容器、可用範圍、比例比較、最後尺寸」四個畫面層次，說明為什麼程式要用 `Math.max`、`Math.min` 和 `displayWidth / displayHeight`。</p>
+    </header>
+
+    <main>
+      <div class="left-column">
+        <section class="board active-1" id="board" aria-label="image resize walkthrough">
+          <div class="visual-head">
+            <div>
+              <p class="visual-title" id="visualTitle">1. 先找到圖片可以放在哪裡</p>
+              <p class="visual-subtitle" id="visualSubtitle">`imageLabel` 放在 `JScrollPane` 裡，真正看得到的區域是 `JViewport`。</p>
+            </div>
+            <div class="badge" id="caseBadge">寬圖情境</div>
+          </div>
+
+          <div class="stage">
+            <div class="viewport-shell" id="viewportShell">
+              <div class="viewport-label" id="viewportLabel">JViewport: 520 x 360</div>
+              <div class="usable-area" id="usableArea">
+                <div class="usable-label" id="usableLabel">可用範圍: 500 x 340</div>
+              </div>
+              <div class="original-image" id="originalImage"></div>
+              <div class="fitted-image" id="fittedImage"></div>
+              <div class="original-label" id="originalLabel">原圖: 1200 x 700</div>
+              <div class="image-label" id="imageLabel">縮放後: 500 x 291</div>
+              <div class="ratio-bar" id="ratioBar">
+                <div class="ratio-row">
+                  <span>寬度比例</span>
+                  <div class="track"><div class="fill" id="widthFill"></div></div>
+                  <span id="widthRatioText">0.417</span>
+                </div>
+                <div class="ratio-row">
+                  <span>高度比例</span>
+                  <div class="track"><div class="fill height-fill" id="heightFill"></div></div>
+                  <span id="heightRatioText">0.486</span>
+                </div>
+              </div>
+              <div class="decision" id="decisionBox">
+                <strong id="decisionTitle">取 0.417</strong>
+                <span id="decisionText">寬度先碰到邊界，所以用寬度比例縮小，圖片才不會超出可視範圍。</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div class="code-card">
+          <h2>對應程式碼</h2>
+          <pre><code id="codeBox"></code></pre>
+        </div>
+      </div>
+
+      <section class="side">
+        <div class="side-card">
+          <h2>選一種圖片情境</h2>
+          <div class="scenario-grid">
+            <button class="scenario active" data-case="wide">
+              寬圖
+              <span>圖片太寬，通常卡在寬度</span>
+            </button>
+            <button class="scenario" data-case="tall">
+              高圖
+              <span>圖片太高，通常卡在高度</span>
+            </button>
+            <button class="scenario" data-case="small">
+              小圖
+              <span>原圖比畫面小，會被放大</span>
+            </button>
+            <button class="scenario" data-case="tight">
+              小視窗
+              <span>視窗很小，保底值開始有感</span>
+            </button>
+          </div>
+
+          <h2>點步驟看原因</h2>
+          <div class="steps" id="steps"></div>
+          <div class="nav-row">
+            <button class="nav-button" id="prevButton">上一步</button>
+            <button class="nav-button" id="nextButton">下一步</button>
+          </div>
+        </div>
+
+        <div class="side-card">
+          <h2>目前計算結果</h2>
+          <div class="readout">
+            <div class="stat">
+              <span>scale</span>
+              <b id="scaleValue">0.417</b>
+            </div>
+            <div class="stat">
+              <span>displayWidth</span>
+              <b id="displayWidthValue">500</b>
+            </div>
+            <div class="stat">
+              <span>displayHeight</span>
+              <b id="displayHeightValue">291</b>
+            </div>
+          </div>
+          <p class="explain" id="plainExplain">最後用同一個 `scale` 同時乘上原圖寬高，所以圖片比例不會變形。</p>
+        </div>
+
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const cases = {
+      wide: {
+        name: "寬圖情境",
+        imageWidth: 1200,
+        imageHeight: 700,
+        viewWidth: 520,
+        viewHeight: 360,
+        padding: 20
+      },
+      tall: {
+        name: "高圖情境",
+        imageWidth: 620,
+        imageHeight: 1100,
+        viewWidth: 520,
+        viewHeight: 360,
+        padding: 20
+      },
+      small: {
+        name: "小圖情境",
+        imageWidth: 260,
+        imageHeight: 160,
+        viewWidth: 520,
+        viewHeight: 360,
+        padding: 20
+      },
+      tight: {
+        name: "小視窗情境",
+        imageWidth: 900,
+        imageHeight: 650,
+        viewWidth: 150,
+        viewHeight: 120,
+        padding: 60
+      }
+    };
+
+    const steps = [
+      {
+        title: "取得 JViewport 尺寸",
+        desc: "先知道圖片預覽區現在有多大。",
+        visualTitle: "1. 先找到圖片可以放在哪裡",
+        visualSubtitle: "`imageLabel` 放在 `JScrollPane` 裡，真正看得到的區域是 `JViewport`。",
+        explain: "這一步不是在縮圖，而是在取得容器大小。沒有容器大小，就不知道圖片最多可以顯示多寬、多高。",
+        code: `Dimension viewSize = imageLabel.getParent() instanceof JViewport
+        ? ((JViewport) imageLabel.getParent()).getExtentSize()
+        : imageLabel.getSize();`
+      },
+      {
+        title: "扣掉邊距，算可用範圍",
+        desc: "圖片不要貼死邊界，所以少用一點空間。",
+        visualTitle: "2. 扣掉邊距後，才是真正可放圖片的區域",
+        visualSubtitle: "`viewSize.width - 20` 代表左右加起來預留 20px，畫面比較不擠。",
+        explain: "`Math.max(100, ...)` 的意思是：就算視窗很小，也至少保留 100px 當計算基準，避免算出太誇張的小尺寸。",
+        code: `int maxWidth = Math.max(100, viewSize.width - 20);
+int maxHeight = Math.max(100, viewSize.height - 20);`
+      },
+      {
+        title: "拿原圖跟可用範圍比較",
+        desc: "分別算寬度要縮多少、高度要縮多少。",
+        visualTitle: "3. 原圖可能比可用範圍大，也可能比較小",
+        visualSubtitle: "所以要分別計算：寬度比例、以及高度比例。",
+        explain: "比例小於 1 代表縮小，比例大於 1 代表放大。寬高要分開算，因為圖片可能是寬圖，也可能是高圖。",
+        code: `double widthRatio = (double) maxWidth / imageWidth;
+double heightRatio = (double) maxHeight / imageHeight;`
+      },
+      {
+        title: "取比較小的比例",
+        desc: "誰比較容易超出，就聽誰的。",
+        visualTitle: "4. 用 Math.min 選比較保守的縮放比例",
+        visualSubtitle: "取比較小的比例，才能保證寬度和高度都不會超出。",
+        explain: "如果取比較大的比例，另一邊就可能爆出去。`Math.min` 是整段縮放邏輯最關鍵的地方。",
+        code: `double scale = Math.min(
+        (double) maxWidth / imageWidth,
+        (double) maxHeight / imageHeight
+);`
+      },
+      {
+        title: "算出最後顯示尺寸",
+        desc: "同一個 scale 同時乘寬和高，圖片不變形。",
+        visualTitle: "5. 最後得到 imageLabel 實際顯示的圖片大小",
+        visualSubtitle: "`displayWidth` 和 `displayHeight` 就是縮放後要塞進 `ImageIcon` 的尺寸。",
+        explain: "寬和高都乘上同一個 `scale`，所以圖片比例保持一樣。`Math.max(1, ...)` 是保護值，避免尺寸被算成 0。",
+        code: `int displayWidth = Math.max(1, (int) (imageWidth * scale));
+int displayHeight = Math.max(1, (int) (imageHeight * scale));`
+      }
+    ];
+
+    const el = {
+      board: document.getElementById("board"),
+      steps: document.getElementById("steps"),
+      caseBadge: document.getElementById("caseBadge"),
+      viewportShell: document.getElementById("viewportShell"),
+      usableArea: document.getElementById("usableArea"),
+      originalImage: document.getElementById("originalImage"),
+      fittedImage: document.getElementById("fittedImage"),
+      viewportLabel: document.getElementById("viewportLabel"),
+      usableLabel: document.getElementById("usableLabel"),
+      originalLabel: document.getElementById("originalLabel"),
+      imageLabel: document.getElementById("imageLabel"),
+      widthFill: document.getElementById("widthFill"),
+      heightFill: document.getElementById("heightFill"),
+      widthRatioText: document.getElementById("widthRatioText"),
+      heightRatioText: document.getElementById("heightRatioText"),
+      decisionTitle: document.getElementById("decisionTitle"),
+      decisionText: document.getElementById("decisionText"),
+      visualTitle: document.getElementById("visualTitle"),
+      visualSubtitle: document.getElementById("visualSubtitle"),
+      plainExplain: document.getElementById("plainExplain"),
+      codeBox: document.getElementById("codeBox"),
+      scaleValue: document.getElementById("scaleValue"),
+      displayWidthValue: document.getElementById("displayWidthValue"),
+      displayHeightValue: document.getElementById("displayHeightValue"),
+      prevButton: document.getElementById("prevButton"),
+      nextButton: document.getElementById("nextButton")
+    };
+
+    let activeCase = "wide";
+    let activeStep = 1;
+
+    function calculate(data) {
+      const maxWidth = Math.max(100, data.viewWidth - data.padding);
+      const maxHeight = Math.max(100, data.viewHeight - data.padding);
+      const widthRatio = maxWidth / data.imageWidth;
+      const heightRatio = maxHeight / data.imageHeight;
+      const scale = Math.min(widthRatio, heightRatio);
+      const displayWidth = Math.max(1, Math.floor(data.imageWidth * scale));
+      const displayHeight = Math.max(1, Math.floor(data.imageHeight * scale));
+
+      return {
+        maxWidth,
+        maxHeight,
+        widthRatio,
+        heightRatio,
+        scale,
+        displayWidth,
+        displayHeight
+      };
+    }
+
+    function px(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function renderSteps() {
+      el.steps.innerHTML = "";
+
+      steps.forEach((step, index) => {
+        const button = document.createElement("button");
+        button.className = "step" + (index + 1 === activeStep ? " active" : "");
+        button.type = "button";
+        button.dataset.step = index + 1;
+        button.innerHTML = `
+          <span class="step-number">${index + 1}</span>
+          <span>
+            <span class="step-title">${step.title}</span>
+            <span class="step-desc">${step.desc}</span>
+          </span>
+        `;
+        button.addEventListener("click", () => {
+          activeStep = index + 1;
+          render();
+        });
+        el.steps.appendChild(button);
+      });
+    }
+
+    function render() {
+      const data = cases[activeCase];
+      const result = calculate(data);
+      const step = steps[activeStep - 1];
+      const limitingSide = result.widthRatio <= result.heightRatio ? "寬度" : "高度";
+
+      document.querySelectorAll(".scenario").forEach((button) => {
+        button.classList.toggle("active", button.dataset.case === activeCase);
+      });
+
+      el.board.className = "board active-" + activeStep;
+      el.caseBadge.textContent = data.name;
+      el.visualTitle.textContent = step.visualTitle;
+      el.visualSubtitle.textContent = step.visualSubtitle;
+      el.plainExplain.textContent = step.explain;
+      el.codeBox.textContent = step.code;
+
+      el.viewportShell.style.width = px(data.viewWidth, 150, 760) + "px";
+      el.viewportShell.style.height = px(data.viewHeight, 120, 470) + "px";
+      el.usableArea.style.inset = (data.padding / 2) + "px";
+
+      const originalScale = Math.min(1, 420 / Math.max(data.imageWidth, data.imageHeight));
+      el.originalImage.style.width = px(data.imageWidth * originalScale, 95, 520) + "px";
+      el.originalImage.style.height = px(data.imageHeight * originalScale, 70, 390) + "px";
+      el.originalImage.style.transform = "translate(-50%, -50%) translate(-22px, -12px)";
+
+      el.fittedImage.style.width = px(result.displayWidth, 60, data.viewWidth - 28) + "px";
+      el.fittedImage.style.height = px(result.displayHeight, 45, data.viewHeight - 28) + "px";
+
+      el.viewportLabel.textContent = `JViewport: ${data.viewWidth} x ${data.viewHeight}`;
+      el.usableLabel.textContent = `可用範圍: ${result.maxWidth} x ${result.maxHeight}`;
+      el.originalLabel.textContent = `原圖: ${data.imageWidth} x ${data.imageHeight}`;
+      el.imageLabel.textContent = `縮放後: ${result.displayWidth} x ${result.displayHeight}`;
+
+      el.widthRatioText.textContent = result.widthRatio.toFixed(3);
+      el.heightRatioText.textContent = result.heightRatio.toFixed(3);
+      el.widthFill.style.width = Math.min(100, result.widthRatio * 100) + "%";
+      el.heightFill.style.width = Math.min(100, result.heightRatio * 100) + "%";
+
+      el.decisionTitle.textContent = `取 ${result.scale.toFixed(3)}`;
+      el.decisionText.textContent = `${limitingSide}比較先碰到邊界，所以用${limitingSide}比例當 scale，圖片就能完整放進可視範圍。`;
+
+      el.scaleValue.textContent = result.scale.toFixed(3);
+      el.displayWidthValue.textContent = result.displayWidth;
+      el.displayHeightValue.textContent = result.displayHeight;
+
+      renderSteps();
+    }
+
+    document.querySelectorAll(".scenario").forEach((button) => {
+      button.addEventListener("click", () => {
+        activeCase = button.dataset.case;
+        render();
+      });
+    });
+
+    el.prevButton.addEventListener("click", () => {
+      activeStep = activeStep === 1 ? steps.length : activeStep - 1;
+      render();
+    });
+
+    el.nextButton.addEventListener("click", () => {
+      activeStep = activeStep === steps.length ? 1 : activeStep + 1;
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>

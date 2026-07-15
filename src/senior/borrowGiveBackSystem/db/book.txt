@@ -1,0 +1,4 @@
+P,1,Java入門,張三,false,Java,aa
+P,2,Python程式設計,王五,true,Python,NULL
+N,3,哈利波特,J.K.Rowling,true,奇幻,NULL
+N,4,達文西密碼,丹布朗,true,歷史,NULL

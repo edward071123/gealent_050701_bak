@@ -1,0 +1,1196 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SwingDemo Lego Exploded View</title>
+  <style>
+    :root {
+      --ink: #20201d;
+      --muted: #6d6a61;
+      --paper: #f7f1e4;
+      --line: #2e2b26;
+      --red: #e8523f;
+      --blue: #2f79d8;
+      --yellow: #f6c84c;
+      --green: #35a96f;
+      --orange: #f18a2a;
+      --gray: #d7d3c8;
+      --shadow: rgba(32, 30, 26, 0.22);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        linear-gradient(90deg, rgba(32, 32, 29, 0.055) 1px, transparent 1px),
+        linear-gradient(rgba(32, 32, 29, 0.055) 1px, transparent 1px),
+        radial-gradient(circle at 18% 12%, rgba(246, 200, 76, 0.24), transparent 30%),
+        radial-gradient(circle at 82% 20%, rgba(47, 121, 216, 0.18), transparent 32%),
+        var(--paper);
+      background-size: 28px 28px, 28px 28px, auto, auto, auto;
+      font-family: "Avenir Next", "Helvetica Neue", sans-serif;
+      letter-spacing: 0;
+    }
+
+    .page {
+      width: min(1180px, calc(100vw - 36px));
+      margin: 0 auto;
+      padding: 32px 0 40px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 22px;
+      align-items: end;
+      border-bottom: 3px solid var(--line);
+      padding-bottom: 18px;
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 760px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(34px, 4.2vw, 58px);
+      line-height: 1.02;
+      letter-spacing: 0;
+    }
+
+    .summary {
+      max-width: 360px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+      gap: 28px;
+      margin-top: 28px;
+      align-items: stretch;
+    }
+
+    .diagram {
+      position: relative;
+      min-height: 650px;
+      overflow: hidden;
+      border: 3px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.65), rgba(255, 255, 255, 0.2)),
+        repeating-linear-gradient(0deg, rgba(32, 32, 29, 0.03), rgba(32, 32, 29, 0.03) 1px, transparent 1px, transparent 12px);
+      box-shadow: 12px 12px 0 rgba(32, 32, 29, 0.14);
+    }
+
+    .exploded {
+      position: absolute;
+      inset: 76px 36px 36px;
+      perspective: 1100px;
+    }
+
+    .swing-window {
+      position: absolute;
+      left: 50%;
+      top: 52%;
+      width: min(92%, 720px);
+      height: 480px;
+      transform: translate(-50%, -50%) rotateX(42deg) rotateZ(-18deg);
+      transform-style: preserve-3d;
+    }
+
+    .window-base {
+      position: absolute;
+      inset: -78px -28px 0 -28px;
+      border: 4px solid var(--line);
+      border-radius: var(--radius);
+      background: #fdf9ee;
+      transform: translateZ(-12px);
+      box-shadow: 34px 42px 0 rgba(32, 32, 29, 0.12);
+      animation: baseAssemble .85s cubic-bezier(.2,.8,.2,1) both;
+    }
+
+    .layer {
+      position: absolute;
+      border: 3px solid var(--line);
+      border-radius: var(--radius);
+      transform-style: preserve-3d;
+      box-shadow: 8px 12px 0 var(--shadow);
+      animation: assemble 1.1s cubic-bezier(.2,.8,.2,1) both;
+    }
+
+    .top-panel {
+      left: 18px;
+      right: 46px;
+      top: 18px;
+      height: 92px;
+      background: var(--yellow);
+      transform: translateZ(48px) translate(0, 0);
+      animation-delay: .75s;
+    }
+
+    .center-frame {
+      position: absolute;
+      left: 18px;
+      right: 46px;
+      top: 112px;
+      height: 282px;
+      border: 3px dashed rgba(32, 32, 29, .72);
+      border-radius: var(--radius);
+      transform: translateZ(28px);
+      animation: outlineIn .75s cubic-bezier(.2,.8,.2,1) 2.85s both;
+      pointer-events: none;
+      z-index: 8;
+    }
+
+    .center-frame::before {
+      content: "splitPane / BorderLayout.CENTER";
+      position: absolute;
+      left: 12px;
+      top: -16px;
+      padding: 3px 8px;
+      border: 2px solid var(--line);
+      border-radius: 5px;
+      background: #dcecff;
+      font-size: 11px;
+      font-weight: 950;
+      white-space: nowrap;
+      z-index: 9;
+    }
+
+    .center-frame::after {
+      content: "";
+      position: absolute;
+      left: 39%;
+      top: 0;
+      bottom: 0;
+      border-left: 3px dashed var(--line);
+      animation: drawDivider .45s ease-out .75s both;
+    }
+
+    .list-panel {
+      left: 8%;
+      top: 166px;
+      width: 30%;
+      height: 228px;
+      background: var(--blue);
+      transform: translateZ(62px) translateX(-20px);
+      animation-delay: 3.25s;
+    }
+
+    .preview-panel {
+      right: 12.5%;
+      top: 146px;
+      width: 49%;
+      height: 238px;
+      background: #fbfaf4;
+      transform: translateZ(40px) translateX(14px);
+      animation-delay: 3.7s;
+    }
+
+    .progress-panel {
+      left: 18px;
+      right: 54px;
+      bottom: 16px;
+      height: 42px;
+      background: var(--green);
+      transform: translateZ(56px) translateY(20px);
+      animation-delay: 4.8s;
+    }
+
+    .toolbar-grid {
+      position: absolute;
+      inset: 34px 18px 12px;
+      display: grid;
+      grid-template-columns: 120px 1fr 110px;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .lego {
+      position: relative;
+      min-height: 28px;
+      border: 3px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      box-shadow: 4px 5px 0 rgba(32, 32, 29, 0.18);
+      font-size: 13px;
+      font-weight: 900;
+      line-height: 1.18;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding-top: 8px;
+    }
+
+    .upload-brick {
+      background: var(--red);
+      color: #fff;
+      animation: pieceIn .55s cubic-bezier(.2,.8,.2,1) 1.45s both;
+    }
+
+    .info-brick {
+      background: #fff8d7;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      min-height: 34px;
+      padding: 5px 8px;
+      align-items: center;
+      animation: pieceIn .55s cubic-bezier(.2,.8,.2,1) 1.75s both;
+    }
+
+    .info-brick strong {
+      position: absolute;
+      left: 50%;
+      top: -20px;
+      transform: translateX(-50%);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .refresh-brick {
+      background: var(--orange);
+      color: #fff;
+      animation: pieceIn .55s cubic-bezier(.2,.8,.2,1) 2.35s both;
+    }
+
+    .mini-label {
+      display: block;
+      border: 2px solid var(--line);
+      border-radius: 5px;
+      background: #fff;
+      color: var(--ink);
+      padding: 3px 4px;
+      font-size: 10px;
+      line-height: 1;
+      animation: pieceIn .45s cubic-bezier(.2,.8,.2,1) both;
+    }
+
+    .mini-status {
+      animation-delay: 2.02s;
+    }
+
+    .mini-size {
+      animation-delay: 2.16s;
+    }
+
+    .file-list {
+      position: absolute;
+      inset: 42px 28px 26px 18px;
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+
+    .scrollbar-y {
+      position: absolute;
+      border: 2px solid var(--line);
+      border-radius: 999px;
+      background: #f7f3ea;
+      box-shadow: 2px 3px 0 rgba(32, 32, 29, 0.14);
+      z-index: 3;
+    }
+
+    .scrollbar-y {
+      top: 42px;
+      right: 8px;
+      bottom: 24px;
+      width: 12px;
+    }
+
+    .scrollbar-y::after {
+      content: "";
+      position: absolute;
+      left: 2px;
+      right: 2px;
+      top: 20%;
+      height: 34%;
+      border-radius: 999px;
+      background: var(--line);
+      opacity: .7;
+    }
+
+    .file-row {
+      height: 28px;
+      border: 3px solid var(--line);
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: 3px 4px 0 rgba(32, 32, 29, 0.18);
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      font-size: 12px;
+      font-weight: 800;
+      animation: pieceIn .45s cubic-bezier(.2,.8,.2,1) both;
+    }
+
+    .file-row:nth-child(1) { animation-delay: 3.95s; }
+    .file-row:nth-child(2) { animation-delay: 4.08s; }
+    .file-row:nth-child(3) { animation-delay: 4.21s; }
+    .file-row:nth-child(4) { animation-delay: 4.34s; }
+
+    .image-tile {
+      position: absolute;
+      inset: 42px 34px 32px 28px;
+      border: 3px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background:
+        linear-gradient(145deg, rgba(47, 121, 216, 0.24), transparent 42%),
+        linear-gradient(30deg, rgba(53, 169, 111, 0.32) 0 34%, transparent 35%),
+        linear-gradient(150deg, transparent 0 58%, rgba(246, 200, 76, 0.5) 59%);
+      animation: pieceIn .55s cubic-bezier(.2,.8,.2,1) 4.45s both;
+    }
+
+    .image-tile::after {
+      content: "imageLabel";
+      position: absolute;
+      left: 14px;
+      bottom: 12px;
+      padding: 4px 8px;
+      border: 2px solid var(--line);
+      background: #fff;
+      border-radius: 5px;
+      font-weight: 900;
+      font-size: 12px;
+    }
+
+    .progress-track {
+      position: absolute;
+      left: 20px;
+      right: 20px;
+      bottom: 8px;
+      height: 16px;
+      border: 3px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      overflow: hidden;
+      animation: pieceIn .45s cubic-bezier(.2,.8,.2,1) 5.25s both;
+    }
+
+    .progress-fill {
+      width: 0%;
+      height: 100%;
+      background: repeating-linear-gradient(90deg, var(--green), var(--green) 16px, #7fd19f 16px, #7fd19f 28px);
+      animation: uploadBar 5.2s ease-in-out 5.8s infinite;
+    }
+
+    .progress-text {
+      position: absolute;
+      right: 26px;
+      top: 10px;
+      font-weight: 900;
+      font-size: 12px;
+      animation: pieceIn .45s cubic-bezier(.2,.8,.2,1) 5.15s both;
+    }
+
+    .component-label {
+      position: absolute;
+      z-index: 4;
+      left: 14px;
+      top: -16px;
+      padding: 3px 8px;
+      border: 2px solid var(--line);
+      border-radius: 5px;
+      background: #fffdf6;
+      font-size: 11px;
+      font-weight: 950;
+      box-shadow: 3px 4px 0 rgba(32, 32, 29, 0.15);
+      white-space: nowrap;
+    }
+
+    .region-label {
+      position: absolute;
+      right: 12px;
+      top: 10px;
+      color: rgba(32, 32, 29, 0.72);
+      font-size: 10px;
+      font-weight: 950;
+      text-transform: uppercase;
+    }
+
+    .split-label {
+      display: none;
+    }
+
+    .split-label::after {
+      content: "JSplitPane divider";
+      position: absolute;
+      top: 12px;
+      left: 18px;
+      width: 118px;
+      padding: 3px 6px;
+      border: 2px solid var(--line);
+      border-radius: 5px;
+      background: #fff;
+      font-size: 10px;
+      font-weight: 900;
+    }
+
+    .flow {
+      border: 3px solid var(--line);
+      border-radius: var(--radius);
+      background: #fffdf6;
+      box-shadow: 12px 12px 0 rgba(32, 32, 29, 0.12);
+      padding: 16px;
+      min-height: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .flow h2 {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 26px;
+      letter-spacing: 0;
+    }
+
+    .flow p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    .steps {
+      display: grid;
+      gap: 8px;
+      margin-top: 0;
+    }
+
+    .blueprint {
+      display: grid;
+      gap: 9px;
+      padding: 12px;
+      border: 3px solid var(--line);
+      border-radius: 8px;
+      background:
+        linear-gradient(rgba(47, 121, 216, .08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(47, 121, 216, .08) 1px, transparent 1px),
+        #fffaf0;
+      background-size: 14px 14px;
+      box-shadow: 5px 6px 0 rgba(32, 32, 29, 0.13);
+      font-family: "Menlo", "Consolas", monospace;
+      font-size: 12px;
+    }
+
+    .blueprint-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      font-family: "Avenir Next", "Helvetica Neue", sans-serif;
+      font-size: 13px;
+      font-weight: 950;
+    }
+
+    .blueprint-title span {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .tree {
+      display: grid;
+      gap: 6px;
+    }
+
+    .node {
+      display: grid;
+      grid-template-columns: 18px 1fr;
+      gap: 6px;
+      align-items: start;
+      min-height: 28px;
+      padding: 6px 8px;
+      border: 2px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      box-shadow: 2px 3px 0 rgba(32, 32, 29, 0.12);
+    }
+
+    .node code {
+      font-family: inherit;
+      font-weight: 950;
+      color: var(--ink);
+    }
+
+    .node small {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .depth-1 { margin-left: 18px; }
+    .depth-2 { margin-left: 38px; }
+    .depth-3 { margin-left: 58px; }
+
+    .ascii-map {
+      margin: 0;
+      padding: 10px;
+      overflow-x: auto;
+      border: 2px solid var(--line);
+      border-radius: 6px;
+      background: #27251f;
+      color: #f8edd3;
+      font-size: 10px;
+      line-height: 1.28;
+      white-space: pre;
+    }
+
+    .step {
+      position: relative;
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 10px;
+      align-items: center;
+      padding: 9px 10px;
+      border: 3px solid var(--line);
+      border-radius: 8px;
+      background: var(--gray);
+      box-shadow: 5px 6px 0 rgba(32, 32, 29, 0.13);
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform .16s ease, background .16s ease, box-shadow .16s ease;
+    }
+
+    .step::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.62), transparent);
+      transform: translateX(-120%);
+      animation: scan 5.2s ease-in-out infinite;
+      animation-delay: var(--delay);
+    }
+
+    .step:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 7px 8px 0 rgba(32, 32, 29, 0.16);
+    }
+
+    .step.done {
+      background: #e7f5dc;
+    }
+
+    .step.active {
+      background: var(--yellow);
+    }
+
+    .step b {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border: 3px solid var(--line);
+      border-radius: 7px;
+      background: #fff;
+      font-size: 15px;
+    }
+
+    .step strong {
+      display: block;
+      margin-bottom: 2px;
+      font-size: 13px;
+    }
+
+    .step small {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.32;
+    }
+
+    .legend {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: auto;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .swatch {
+      width: 24px;
+      height: 18px;
+      border: 3px solid var(--line);
+      border-radius: 4px;
+      box-shadow: 2px 3px 0 rgba(32, 32, 29, 0.15);
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .flat-tag {
+      position: absolute;
+      right: 18px;
+      bottom: 18px;
+      z-index: 10;
+      max-width: 300px;
+      padding: 7px 10px;
+      border: 3px solid var(--line);
+      border-radius: 7px;
+      background: #fffdf6;
+      box-shadow: 5px 6px 0 rgba(32, 32, 29, 0.15);
+      font-size: 12px;
+      font-weight: 950;
+      line-height: 1.35;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity .22s ease, transform .22s ease;
+      pointer-events: none;
+    }
+
+    .flat-tag small {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .border-layout-map {
+      position: absolute;
+      left: 24px;
+      top: 24px;
+      z-index: 11;
+      width: 260px;
+      border: 3px solid var(--line);
+      border-radius: 8px;
+      background: #fffdf6;
+      box-shadow: 6px 7px 0 rgba(32, 32, 29, 0.16);
+      padding: 10px;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity .22s ease, transform .22s ease;
+      pointer-events: none;
+    }
+
+    .layout-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.5fr 1fr;
+      grid-template-rows: 42px 78px 42px;
+      border: 3px solid var(--line);
+      font-size: 11px;
+      font-weight: 950;
+      text-align: center;
+    }
+
+    .layout-cell {
+      display: grid;
+      place-items: center;
+      border: 2px solid var(--line);
+      background: #fff;
+    }
+
+    .layout-north {
+      grid-column: 1 / -1;
+      background: #ffe089;
+    }
+
+    .layout-west {
+      background: #dcecff;
+    }
+
+    .layout-center {
+      background: #fffaf0;
+    }
+
+    .layout-east {
+      background: #ffe6bf;
+    }
+
+    .layout-south {
+      grid-column: 1 / -1;
+      background: #dff4df;
+    }
+
+    .interactive.step-1 .border-layout-map {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .interactive .window-base,
+    .interactive .center-frame,
+    .interactive .layer,
+    .interactive .lego,
+    .interactive .mini-label,
+    .interactive .file-row,
+    .interactive .image-tile,
+    .interactive .scrollbar-y,
+    .interactive .progress-text,
+    .interactive .progress-track,
+    .interactive .progress-fill,
+    .interactive .split-label {
+      opacity: 0;
+      animation: none;
+    }
+
+    .interactive .progress-fill {
+      width: 0%;
+    }
+
+    .interactive.step-1 .window-base {
+      opacity: 1;
+      animation: baseAssemble .85s cubic-bezier(.2,.8,.2,1) both;
+    }
+
+    .interactive.current-1 .tag-frame,
+    .interactive.current-2 .tag-north,
+    .interactive.current-3 .tag-upload,
+    .interactive.current-4 .tag-info,
+    .interactive.current-5 .tag-refresh,
+    .interactive.current-6 .tag-center,
+    .interactive.current-7 .tag-list,
+    .interactive.current-8 .tag-preview,
+    .interactive.current-9 .tag-south {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .interactive.step-2 .top-panel,
+    .interactive.step-3 .upload-brick,
+    .interactive.step-4 .info-brick,
+    .interactive.step-4 .mini-label,
+    .interactive.step-5 .refresh-brick {
+      opacity: 1;
+    }
+
+    .interactive.step-2 .top-panel {
+      animation: assemble .9s cubic-bezier(.2,.8,.2,1) both;
+    }
+
+    .interactive.step-3 .upload-brick {
+      animation: pieceIn .45s cubic-bezier(.2,.8,.2,1) both;
+    }
+
+    .interactive.step-4 .info-brick {
+      animation: pieceIn .45s cubic-bezier(.2,.8,.2,1) both;
+    }
+
+    .interactive.step-4 .mini-status {
+      animation: pieceIn .35s cubic-bezier(.2,.8,.2,1) .2s both;
+    }
+
+    .interactive.step-4 .mini-size {
+      animation: pieceIn .35s cubic-bezier(.2,.8,.2,1) .34s both;
+    }
+
+    .interactive.step-5 .refresh-brick {
+      animation: pieceIn .45s cubic-bezier(.2,.8,.2,1) both;
+    }
+
+    .interactive.step-6 .center-frame,
+    .interactive.step-7 .list-panel,
+    .interactive.step-7 .file-row,
+    .interactive.step-7 .scrollbar-y,
+    .interactive.step-8 .preview-panel,
+    .interactive.step-8 .image-tile,
+    .interactive.step-8 .scrollbar-y,
+    .interactive.step-6 .split-label {
+      opacity: 1;
+    }
+
+    .interactive.step-6 .center-frame {
+      animation: outlineIn .55s cubic-bezier(.2,.8,.2,1) both;
+    }
+
+    .interactive.step-7 .list-panel {
+      animation: assemble .8s cubic-bezier(.2,.8,.2,1) both;
+    }
+
+    .interactive.step-8 .preview-panel {
+      animation: assemble .8s cubic-bezier(.2,.8,.2,1) both;
+    }
+
+    .interactive.step-7 .file-row:nth-child(1) { animation: pieceIn .35s cubic-bezier(.2,.8,.2,1) .3s both; }
+    .interactive.step-7 .file-row:nth-child(2) { animation: pieceIn .35s cubic-bezier(.2,.8,.2,1) .42s both; }
+    .interactive.step-7 .file-row:nth-child(3) { animation: pieceIn .35s cubic-bezier(.2,.8,.2,1) .54s both; }
+    .interactive.step-7 .file-row:nth-child(4) { animation: pieceIn .35s cubic-bezier(.2,.8,.2,1) .66s both; }
+
+    .interactive.step-8 .image-tile {
+      animation: pieceIn .45s cubic-bezier(.2,.8,.2,1) .28s both;
+    }
+
+    .interactive.step-7 .list-panel .scrollbar-y,
+    .interactive.step-8 .preview-panel .scrollbar-y {
+      animation: pieceIn .35s cubic-bezier(.2,.8,.2,1) .52s both;
+    }
+
+    .interactive.step-9 .progress-panel,
+    .interactive.step-9 .progress-text,
+    .interactive.step-9 .progress-track {
+      opacity: 1;
+    }
+
+    .interactive.step-9 .progress-panel {
+      animation: assemble .75s cubic-bezier(.2,.8,.2,1) both;
+    }
+
+    .interactive.step-9 .progress-text,
+    .interactive.step-9 .progress-track {
+      animation: pieceIn .35s cubic-bezier(.2,.8,.2,1) .35s both;
+    }
+
+    button {
+      min-height: 42px;
+      border: 3px solid var(--blue);
+      border-radius: 7px;
+      background: #fffdf6;
+      color: var(--blue);
+      font-weight: 950;
+      cursor: pointer;
+      padding: 0 16px;
+      box-shadow: 4px 5px 0 rgba(32, 32, 29, 0.18);
+      transition: transform .16s ease, box-shadow .16s ease;
+    }
+
+    button:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 6px 7px 0 rgba(32, 32, 29, 0.18);
+    }
+
+    .paused * {
+      animation-play-state: paused !important;
+    }
+
+    @keyframes assemble {
+      from {
+        opacity: 0;
+        filter: blur(8px);
+        transform: translateZ(210px) translateY(-160px) rotateX(18deg);
+      }
+    }
+
+    @keyframes baseAssemble {
+      from {
+        opacity: 0;
+        filter: blur(8px);
+        transform: translateZ(-80px) translateY(90px) scale(.92);
+      }
+    }
+
+    @keyframes outlineIn {
+      from {
+        opacity: 0;
+        transform: translateZ(28px) scale(.92);
+      }
+    }
+
+    @keyframes pieceIn {
+      from {
+        opacity: 0;
+        filter: blur(5px);
+        transform: translateY(-28px) scale(.9);
+      }
+    }
+
+    @keyframes drawDivider {
+      from {
+        opacity: 0;
+        clip-path: inset(0 0 100% 0);
+      }
+      to {
+        clip-path: inset(0 0 0 0);
+      }
+    }
+
+    @keyframes uploadBar {
+      0%, 12% { width: 0%; }
+      30% { width: 28%; }
+      50% { width: 56%; }
+      76% { width: 84%; }
+      92%, 100% { width: 100%; }
+    }
+
+    @keyframes scan {
+      0%, 18% { transform: translateX(-120%); }
+      34%, 100% { transform: translateX(120%); }
+    }
+
+    @media (max-width: 900px) {
+      header,
+      main {
+        grid-template-columns: 1fr;
+      }
+
+      .summary {
+        max-width: none;
+      }
+
+      .diagram,
+      .flow {
+        min-height: 560px;
+      }
+
+      .swing-window {
+        width: 760px;
+        left: 56%;
+        transform: translate(-50%, -50%) rotateX(42deg) rotateZ(-18deg) scale(.78);
+      }
+    }
+
+    @media (max-width: 620px) {
+      .page {
+        width: min(100vw - 24px, 1180px);
+        padding-top: 20px;
+      }
+
+      .diagram {
+        min-height: 520px;
+      }
+
+      .swing-window {
+        transform: translate(-50%, -50%) rotateX(42deg) rotateZ(-18deg) scale(.62);
+      }
+
+      .legend {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page interactive step-0" id="page">
+    <header>
+      <div>
+        <p class="eyebrow">SwingDemo.java / BorderLayout exploded view</p>
+        <h1>Swing 畫面生成</h1>
+      </div>
+      <p class="summary">把 JFrame、topPanel、JSplitPane、JList、imageLabel 和 progressBar 拆成積木層，看清楚畫面如何被組起來。</p>
+    </header>
+
+    <main>
+      <section class="diagram" aria-label="SwingDemo Lego diagram">
+        <div class="flat-tags" aria-hidden="true">
+          <div class="flat-tag tag-frame">1. JFrame<small>先建立整個視窗容器</small></div>
+          <div class="flat-tag tag-north">2. NORTH / topPanel<small>先放上方工具列容器</small></div>
+          <div class="flat-tag tag-upload">3. uploadButton<small>放在 topPanel.WEST</small></div>
+          <div class="flat-tag tag-info">4. infoPanel<small>statusLabel 與 fileSizeLabel 左右排列</small></div>
+          <div class="flat-tag tag-refresh">5. refreshButton<small>放在 topPanel.EAST</small></div>
+          <div class="flat-tag tag-center">6. CENTER / splitPane<small>畫出左右分割區域</small></div>
+          <div class="flat-tag tag-list">7. listScrollPane<small>左側清單與 imageList</small></div>
+          <div class="flat-tag tag-preview">8. imageScrollPane<small>右側預覽與 imageLabel</small></div>
+          <div class="flat-tag tag-south">9. SOUTH / progressBar<small>底部進度條區塊</small></div>
+        </div>
+
+        <div class="border-layout-map" aria-hidden="true">
+          <div class="layout-grid">
+            <div class="layout-cell layout-north">NORTH</div>
+            <div class="layout-cell layout-west">WEST</div>
+            <div class="layout-cell layout-center">CENTER</div>
+            <div class="layout-cell layout-east">EAST</div>
+            <div class="layout-cell layout-south">SOUTH</div>
+          </div>
+        </div>
+
+        <div class="exploded">
+          <div class="swing-window">
+            <div class="window-base"></div>
+
+            <div class="layer top-panel">
+              <div class="component-label">topPanel / BorderLayout.NORTH</div>
+              <div class="region-label">JPanel + BorderLayout(8, 0)</div>
+              <div class="toolbar-grid">
+                <div class="lego upload-brick">uploadButton<br>上傳圖片</div>
+                <div class="lego info-brick">
+                  <strong>infoPanel</strong>
+                  <span class="mini-label mini-status">statusLabel：狀態</span>
+                  <span class="mini-label mini-size">fileSizeLabel：大小</span>
+                </div>
+                <div class="lego refresh-brick">refreshButton<br>重新整理</div>
+              </div>
+            </div>
+
+            <div class="center-frame"></div>
+
+            <div class="layer list-panel">
+              <div class="component-label">listScrollPane</div>
+              <div class="region-label">imageList</div>
+              <div class="file-list">
+                <div class="file-row">q1.png</div>
+                <div class="file-row">travel01.jpg</div>
+                <div class="file-row">avatar.gif</div>
+                <div class="file-row">family.jpeg</div>
+              </div>
+              <div class="scrollbar-y"></div>
+            </div>
+
+            <div class="layer preview-panel">
+              <div class="component-label">imageScrollPane</div>
+              <div class="region-label">imageLabel</div>
+              <div class="image-tile"></div>
+              <div class="scrollbar-y"></div>
+            </div>
+
+            <div class="layer progress-panel">
+              <div class="component-label">progressBar / BorderLayout.SOUTH</div>
+              <div class="progress-text">JProgressBar 0% -> 100%</div>
+              <div class="progress-track">
+                <div class="progress-fill"></div>
+              </div>
+            </div>
+
+            <div class="split-label"></div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="flow">
+        <div>
+          <h2>剖析流程</h2>
+          <p>這頁對應 `SwingDemo.java` 的單檔上傳畫面。點右側步驟，左邊才會完成對應的 JFrame 區塊。</p>
+        </div>
+
+        <div class="steps">
+          <div class="step" data-step="1" role="button" tabindex="0" style="--delay: .1s">
+            <b>1</b>
+            <div>
+              <strong>JFrame 外框先定位</strong>
+              <small>先出現整個視窗容器，後面的 NORTH、CENTER、SOUTH 都放進這個範圍。</small>
+            </div>
+          </div>
+          <div class="step" data-step="2" role="button" tabindex="0" style="--delay: 1.1s">
+            <b>2</b>
+            <div>
+              <strong>NORTH：topPanel 容器</strong>
+              <small>先放上方工具列 JPanel，對應 BorderLayout.NORTH。</small>
+            </div>
+          </div>
+          <div class="step" data-step="3" role="button" tabindex="0" style="--delay: 2.1s">
+            <b>3</b>
+            <div>
+              <strong>uploadButton</strong>
+              <small>放在 topPanel 左側，點擊後呼叫 uploadImage()。</small>
+            </div>
+          </div>
+          <div class="step" data-step="4" role="button" tabindex="0" style="--delay: 3.1s">
+            <b>4</b>
+            <div>
+              <strong>infoPanel</strong>
+              <small>中間放 statusLabel 與 fileSizeLabel，左右分開顯示。</small>
+            </div>
+          </div>
+          <div class="step" data-step="5" role="button" tabindex="0" style="--delay: 4.1s">
+            <b>5</b>
+            <div>
+              <strong>refreshButton</strong>
+              <small>放在 topPanel 右側，重新整理 uploads 清單。</small>
+            </div>
+          </div>
+          <div class="step" data-step="6" role="button" tabindex="0" style="--delay: 5.1s">
+            <b>6</b>
+            <div>
+              <strong>CENTER：splitPane 容器</strong>
+              <small>先畫出 BorderLayout.CENTER 的左右分割範圍。</small>
+            </div>
+          </div>
+          <div class="step" data-step="7" role="button" tabindex="0" style="--delay: 6.1s">
+            <b>7</b>
+            <div>
+              <strong>listScrollPane / imageList</strong>
+              <small>左側滾動區，列出 uploads 裡的圖片。</small>
+            </div>
+          </div>
+          <div class="step" data-step="8" role="button" tabindex="0" style="--delay: 7.1s">
+            <b>8</b>
+            <div>
+              <strong>imageScrollPane / imageLabel</strong>
+              <small>右側滾動區，顯示選到或剛上傳的圖片。</small>
+            </div>
+          </div>
+          <div class="step" data-step="9" role="button" tabindex="0" style="--delay: 8.1s">
+            <b>9</b>
+            <div>
+              <strong>SOUTH：progressBar</strong>
+              <small>最後放底部進度條，顯示 0% 到 100%。</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button type="button" id="replay">重設步驟</button>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script>
+    const page = document.getElementById("page");
+    const replay = document.getElementById("replay");
+    const steps = Array.from(document.querySelectorAll(".step[data-step]"));
+    const maxStep = 9;
+
+    function setStep(activeStep) {
+      for (let i = 0; i <= maxStep; i++) {
+        page.classList.remove("step-" + i);
+        page.classList.remove("current-" + i);
+      }
+
+      for (let i = 1; i <= activeStep; i++) {
+        page.classList.add("step-" + i);
+      }
+
+      if (activeStep === 0) {
+        page.classList.add("step-0");
+      }
+
+      page.classList.add("current-" + activeStep);
+
+      steps.forEach((step) => {
+        const stepNumber = Number(step.dataset.step);
+        step.classList.toggle("done", stepNumber < activeStep);
+        step.classList.toggle("active", stepNumber === activeStep);
+      });
+    }
+
+    steps.forEach((step) => {
+      const stepNumber = Number(step.dataset.step);
+
+      step.addEventListener("click", () => {
+        setStep(stepNumber);
+      });
+
+      step.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          setStep(stepNumber);
+        }
+      });
+    });
+
+    replay.addEventListener("click", () => {
+      setStep(0);
+    });
+
+    setStep(0);
+  </script>
+</body>
+</html>

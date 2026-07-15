@@ -1,0 +1,633 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MySQL Client Server Intro</title>
+  <style>
+    :root {
+      --ink: #26231f;
+      --muted: #6d665b;
+      --paper: #f4ead8;
+      --panel: #fffaf0;
+      --line: #302c26;
+      --blue: #167fa9;
+      --blue-soft: #dff2ff;
+      --orange: #ef8f28;
+      --orange-soft: #ffe5bf;
+      --green: #2f9d69;
+      --green-soft: #def4e8;
+      --red-soft: #ffe2dc;
+      --shadow: rgba(48, 44, 38, .16);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        linear-gradient(90deg, rgba(48, 44, 38, .055) 1px, transparent 1px),
+        linear-gradient(rgba(48, 44, 38, .055) 1px, transparent 1px),
+        var(--paper);
+      background-size: 28px 28px;
+      font-family: "Avenir Next", "Helvetica Neue", sans-serif;
+      letter-spacing: 0;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .page {
+      width: min(1220px, calc(100vw - 28px));
+      margin: 0 auto;
+      padding: 22px 0 40px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(330px, 470px);
+      gap: 24px;
+      align-items: end;
+      padding-bottom: 14px;
+      border-bottom: 4px solid var(--line);
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 950;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(34px, 4.2vw, 58px);
+      line-height: 1.03;
+    }
+
+    .intro {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 750;
+      line-height: 1.65;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(330px, .72fr) minmax(0, 1.28fr);
+      gap: 22px;
+      margin-top: 22px;
+      align-items: start;
+    }
+
+    .card,
+    .board {
+      border: 4px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: 10px 10px 0 var(--shadow);
+    }
+
+    .card {
+      padding: 16px;
+      display: grid;
+      gap: 14px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 23px;
+      font-weight: 950;
+    }
+
+    .concept-list {
+      display: grid;
+      gap: 9px;
+    }
+
+    .concept {
+      display: grid;
+      grid-template-columns: 40px 1fr;
+      gap: 10px;
+      align-items: center;
+      width: 100%;
+      padding: 10px;
+      border: 3px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      box-shadow: 4px 4px 0 rgba(48, 44, 38, .12);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .concept.active {
+      background: var(--orange-soft);
+      transform: translate(2px, 2px);
+      box-shadow: 2px 2px 0 rgba(48, 44, 38, .12);
+    }
+
+    .num {
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      border: 3px solid var(--line);
+      border-radius: 50%;
+      background: #fff;
+      font-weight: 950;
+    }
+
+    .concept strong {
+      display: block;
+      font-size: 16px;
+      font-weight: 950;
+    }
+
+    .concept span:last-child {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.35;
+    }
+
+    .explain {
+      padding: 14px;
+      border: 3px solid var(--line);
+      border-radius: 8px;
+      background: var(--blue-soft);
+      font-weight: 800;
+      line-height: 1.65;
+    }
+
+    .board {
+      min-height: 690px;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 12% 10%, rgba(239, 143, 40, .18), transparent 25%),
+        radial-gradient(circle at 88% 74%, rgba(22, 127, 169, .15), transparent 28%),
+        #fffaf0;
+    }
+
+    .scene-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: start;
+      margin-bottom: 16px;
+    }
+
+    .scene-title h2 {
+      font-size: 27px;
+    }
+
+    .badge {
+      padding: 9px 12px;
+      border: 3px solid var(--line);
+      border-radius: 8px;
+      background: var(--green-soft);
+      box-shadow: 4px 4px 0 rgba(48, 44, 38, .12);
+      font-weight: 950;
+      white-space: nowrap;
+    }
+
+    .client-server {
+      display: grid;
+      grid-template-columns: 1fr 170px 1fr;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 22px;
+    }
+
+    .box {
+      min-height: 150px;
+      padding: 16px;
+      border: 4px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      box-shadow: 7px 7px 0 rgba(48, 44, 38, .13);
+      transition: transform .2s ease, background .2s ease, outline .2s ease;
+    }
+
+    .box h3 {
+      margin: 0 0 8px;
+      font-size: 24px;
+      font-weight: 950;
+    }
+
+    .box p {
+      margin: 0;
+      color: var(--muted);
+      font-weight: 800;
+      line-height: 1.45;
+    }
+
+    .client {
+      background: var(--blue-soft);
+    }
+
+    .server {
+      background: var(--green-soft);
+    }
+
+    .arrow {
+      display: grid;
+      gap: 8px;
+      text-align: center;
+      font-weight: 950;
+    }
+
+    .arrow-line {
+      height: 16px;
+      border: 3px solid var(--line);
+      border-radius: 999px;
+      background: repeating-linear-gradient(90deg, var(--orange), var(--orange) 16px, #ffc06d 16px, #ffc06d 32px);
+      position: relative;
+    }
+
+    .arrow-line::after {
+      content: "";
+      position: absolute;
+      right: -13px;
+      top: 50%;
+      transform: translateY(-50%);
+      border-left: 16px solid var(--line);
+      border-top: 12px solid transparent;
+      border-bottom: 12px solid transparent;
+    }
+
+    .sql-card {
+      padding: 12px;
+      border: 3px solid var(--line);
+      border-radius: 8px;
+      background: #20211f;
+      color: #fff4da;
+      font-family: Menlo, Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+    }
+
+    .database-area {
+      display: grid;
+      gap: 14px;
+      padding: 16px;
+      border: 4px dashed rgba(48, 44, 38, .65);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, .58);
+    }
+
+    .database-label {
+      display: inline-block;
+      width: fit-content;
+      padding: 7px 10px;
+      border: 3px solid var(--line);
+      border-radius: 8px;
+      background: var(--orange-soft);
+      font-weight: 950;
+    }
+
+    .tables {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .table-card {
+      border: 4px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      overflow: hidden;
+      box-shadow: 6px 6px 0 rgba(48, 44, 38, .12);
+    }
+
+    .table-name {
+      padding: 10px 12px;
+      border-bottom: 4px solid var(--line);
+      background: var(--green);
+      color: #fff;
+      font-weight: 950;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      padding: 9px;
+      border-bottom: 2px solid #ddd;
+      border-right: 2px solid #ddd;
+      text-align: left;
+      font-weight: 800;
+    }
+
+    th {
+      background: var(--blue-soft);
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    th:last-child,
+    td:last-child {
+      border-right: 0;
+    }
+
+    .active-target {
+      outline: 7px solid rgba(239, 143, 40, .62);
+      transform: translateY(-3px);
+    }
+
+    .column-highlight th {
+      background: var(--orange-soft);
+    }
+
+    .row-highlight tbody tr:first-child td {
+      background: var(--red-soft);
+    }
+
+    .mini-map {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .mini {
+      padding: 10px;
+      border: 3px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      font-weight: 950;
+      text-align: center;
+    }
+
+    @media (max-width: 980px) {
+      header,
+      main,
+      .client-server,
+      .tables {
+        grid-template-columns: 1fr;
+      }
+
+      .arrow-line::after {
+        display: none;
+      }
+
+      .board {
+        min-height: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div>
+        <p class="eyebrow">Senior / DatabaseInfo</p>
+        <h1>MySQL Client / Server 入門</h1>
+      </div>
+      <p class="intro">用互動圖解了解 MySQL 的基本角色：Client 負責送 SQL，Server 負責處理與保存資料；資料則放在 Database、Table、Column、Row 裡。</p>
+    </header>
+
+    <main>
+      <section class="card">
+        <h2>點概念看圖</h2>
+        <div class="concept-list" id="conceptList"></div>
+        <div class="explain" id="explainBox"></div>
+      </section>
+
+      <section class="board">
+        <div class="scene-title">
+          <div>
+            <h2 id="sceneTitle">Client 發出 SQL，Server 回傳結果</h2>
+          </div>
+          <div class="badge" id="badge">目前：Client</div>
+        </div>
+
+        <div class="client-server">
+          <div class="box client" id="clientBox">
+            <h3>Client</h3>
+            <p>使用者操作的工具，例如 MySQL Workbench、Terminal、Java 程式。</p>
+          </div>
+
+          <div class="arrow">
+            <div>SQL Request</div>
+            <div class="arrow-line"></div>
+            <div>Result Response</div>
+          </div>
+
+          <div class="box server" id="serverBox">
+            <h3>MySQL Server</h3>
+            <p>真正管理資料庫的程式，負責接收 SQL、查資料、存資料。</p>
+          </div>
+        </div>
+
+        <div class="sql-card">SELECT id, name, email
+FROM students
+WHERE id = 1;</div>
+
+        <div class="database-area" id="databaseBox">
+          <span class="database-label">Database: school</span>
+          <div class="tables">
+            <div class="table-card" id="studentsTable">
+              <div class="table-name">Table: students</div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>id</th>
+                    <th>name</th>
+                    <th>email</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>1</td>
+                    <td>Amy</td>
+                    <td>amy@mail.com</td>
+                  </tr>
+                  <tr>
+                    <td>2</td>
+                    <td>Ben</td>
+                    <td>ben@mail.com</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="table-card" id="coursesTable">
+              <div class="table-name">Table: courses</div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>id</th>
+                    <th>title</th>
+                    <th>hours</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>1</td>
+                    <td>Java</td>
+                    <td>60</td>
+                  </tr>
+                  <tr>
+                    <td>2</td>
+                    <td>MySQL</td>
+                    <td>30</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="mini-map">
+          <div class="mini">Server 裡有多個 Database</div>
+          <div class="mini">Database 裡有多個 Table</div>
+          <div class="mini">Table 上方是 Column</div>
+          <div class="mini">Table 每一筆是 Row</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const concepts = [
+      {
+        key: "client",
+        title: "Client",
+        desc: "送出 SQL 的工具",
+        scene: "Client 發出 SQL，Server 回傳結果",
+        badge: "目前：Client",
+        explain: "Client 是你操作的那一端。例如 MySQL Workbench、Terminal 裡的 mysql 指令、或 Java 程式。Client 不負責保存資料，它主要負責送出 SQL 指令。"
+      },
+      {
+        key: "server",
+        title: "MySQL Server",
+        desc: "真正處理資料的程式",
+        scene: "Server 接收 SQL，處理資料",
+        badge: "目前：Server",
+        explain: "MySQL Server 是背景執行的資料庫服務。Client 送 SQL 給 Server，Server 解析後去資料庫查詢、修改或新增資料。"
+      },
+      {
+        key: "database",
+        title: "Database",
+        desc: "資料庫，像一個資料分類箱",
+        scene: "Database 用來分類保存資料",
+        badge: "目前：Database",
+        explain: "Database 是資料庫。你可以把它想成一個大資料夾，例如 school、shop、company。不同系統通常會放在不同 database。"
+      },
+      {
+        key: "table",
+        title: "Table",
+        desc: "資料表，像 Excel 工作表",
+        scene: "Table 用來存同一類資料",
+        badge: "目前：Table",
+        explain: "Table 是資料表。students 表放學生資料，courses 表放課程資料。每張表都有自己的欄位與資料列。"
+      },
+      {
+        key: "column",
+        title: "Column",
+        desc: "欄位，定義每格資料代表什麼",
+        scene: "Column 是資料表的欄位名稱",
+        badge: "目前：Column",
+        explain: "Column 是欄位，例如 id、name、email。欄位會定義這一格資料代表什麼，也會設定型別，例如 INT、VARCHAR。"
+      },
+      {
+        key: "row",
+        title: "Row",
+        desc: "資料列，一筆完整資料",
+        scene: "Row 是資料表中的一筆資料",
+        badge: "目前：Row",
+        explain: "Row 是資料列，也就是一筆完整資料。例如 Amy 這個學生的 id、name、email 放在同一列。"
+      }
+    ];
+
+    const el = {
+      conceptList: document.getElementById("conceptList"),
+      explainBox: document.getElementById("explainBox"),
+      sceneTitle: document.getElementById("sceneTitle"),
+      badge: document.getElementById("badge"),
+      clientBox: document.getElementById("clientBox"),
+      serverBox: document.getElementById("serverBox"),
+      databaseBox: document.getElementById("databaseBox"),
+      studentsTable: document.getElementById("studentsTable"),
+      coursesTable: document.getElementById("coursesTable")
+    };
+
+    let activeKey = "client";
+
+    function clearHighlights() {
+      [el.clientBox, el.serverBox, el.databaseBox, el.studentsTable, el.coursesTable].forEach((node) => {
+        node.classList.remove("active-target", "column-highlight", "row-highlight");
+      });
+      document.querySelectorAll(".concept").forEach((button) => {
+        button.classList.toggle("active", button.dataset.key === activeKey);
+      });
+    }
+
+    function render() {
+      const concept = concepts.find((item) => item.key === activeKey);
+      clearHighlights();
+
+      el.sceneTitle.textContent = concept.scene;
+      el.badge.textContent = concept.badge;
+      el.explainBox.textContent = concept.explain;
+
+      if (activeKey === "client") el.clientBox.classList.add("active-target");
+      if (activeKey === "server") el.serverBox.classList.add("active-target");
+      if (activeKey === "database") el.databaseBox.classList.add("active-target");
+      if (activeKey === "table") {
+        el.studentsTable.classList.add("active-target");
+        el.coursesTable.classList.add("active-target");
+      }
+      if (activeKey === "column") {
+        el.studentsTable.classList.add("active-target", "column-highlight");
+      }
+      if (activeKey === "row") {
+        el.studentsTable.classList.add("active-target", "row-highlight");
+      }
+    }
+
+    function init() {
+      el.conceptList.innerHTML = concepts.map((concept, index) => `
+        <button class="concept" type="button" data-key="${concept.key}">
+          <span class="num">${index + 1}</span>
+          <span>
+            <strong>${concept.title}</strong>
+            <span>${concept.desc}</span>
+          </span>
+        </button>
+      `).join("");
+
+      document.querySelectorAll(".concept").forEach((button) => {
+        button.addEventListener("click", () => {
+          activeKey = button.dataset.key;
+          render();
+        });
+      });
+
+      render();
+    }
+
+    init();
+  </script>
+</body>
+</html>

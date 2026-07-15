@@ -1,0 +1,4 @@
+/.vscode
+/bin
+/src/senior/uploadImage/uploads
+.env
