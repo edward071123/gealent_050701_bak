@@ -17,7 +17,7 @@ public class App {
     public static void main(String[] args) throws Exception {
         // 系統的輸出的換行印出
         // 每一行結束要有分號
-        System.out.println("Hello, World! #1 #2");
+        System.out.println("Hello, World! #1 #2 #3");
         System.out.println("hi Edward1");
         System.out.println("hi Edward2");
 
